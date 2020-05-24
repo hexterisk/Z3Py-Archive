@@ -8,6 +8,8 @@ This project archives files in the official [Z3py website](http://rise4fun.com/z
 * [Advanced topics](http://ericpony.github.io/z3py-tutorial/advanced-examples.htm)
 * [API documentation](http://z3prover.github.io/api/html/namespacez3py.html)  (also available in [pydoc format](http://z3prover.github.io/api/html/z3.html))
 
+* [Sudoku solver using Z3.ipynb](https://github.com/hexterisk/Z3Py-Archive/blob/master/Sudoku%20solver%20using%20Z3.ipynb) gives a more comprehensive explanation on a sudoku solver.
+
 The source code of Z3Py is available in the Z3 distribution, where you can also find APIs in C, .NET, OCaml, and Java. Other cool front-ends for Z3 includes [ScalaZ3](https://github.com/epfl-lara/ScalaZ3) and [SBV](https://github.com/LeventErkok/sbv).
 
 ## Related projects

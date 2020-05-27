@@ -2,7 +2,7 @@
 <html>
 <head><meta charset="utf-8" />
 
-<title>Sudoku solver using Z3</title>
+<title>Serial solver using Z3</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -13084,7 +13084,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>We'll design a simple program that solves sudoku puzzle using Z3.</p>
+<p>Using the constraints and computations specified in the binary, we'll write a Z3 script to give us our good serial.</p>
 
 </div>
 </div>
@@ -13107,23 +13107,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>We need to encode the rules of the puzzle in propositional logic. To achieve that, we define certain variables that help us get around in the puzzle.</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Constants">Constants<a class="anchor-link" href="#Constants">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>We start by defining a puzzle board,a 9x9 matrix of integer variables to mark the puzzle board.</p>
-
+<h3 id="Initialisation">Initialisation<a class="anchor-link" href="#Initialisation">&#182;</a></h3>
 </div>
 </div>
 </div>
@@ -13132,18 +13116,35 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Runs a nested loop to create the two dimensional matrix required.</span>
-<span class="c1"># c_i_j is the cell at ith row and jth column.</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Initialising required variables</span>
 
-<span class="n">board</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># Z3&#39;s solver engine</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">z3</span><span class="o">.</span><span class="n">Solver</span><span class="p">()</span>
+</pre></div>
 
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-    <span class="n">column</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-        <span class="n">column</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="s2">&quot;c_</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
-    <span class="n">board</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
-    
-<span class="n">board</span>
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We have to create an array such that operations could be done on it for the first transformation loop.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Declare a bitvector variable </span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">z3</span><span class="o">.</span><span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+
+<span class="c1"># &#39;sexpr&#39; method shows the internal representation.</span>
+<span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sexpr</span><span class="p">()</span>
 </pre></div>
 
     </div>
@@ -13156,21 +13157,13 @@ div#notebook {
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[2]:</div>
+    <div class="prompt output_prompt">Out[3]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[[c_1_1, c_1_2, c_1_3, c_1_4, c_1_5, c_1_6, c_1_7, c_1_8, c_1_9],
- [c_2_1, c_2_2, c_2_3, c_2_4, c_2_5, c_2_6, c_2_7, c_2_8, c_2_9],
- [c_3_1, c_3_2, c_3_3, c_3_4, c_3_5, c_3_6, c_3_7, c_3_8, c_3_9],
- [c_4_1, c_4_2, c_4_3, c_4_4, c_4_5, c_4_6, c_4_7, c_4_8, c_4_9],
- [c_5_1, c_5_2, c_5_3, c_5_4, c_5_5, c_5_6, c_5_7, c_5_8, c_5_9],
- [c_6_1, c_6_2, c_6_3, c_6_4, c_6_5, c_6_6, c_6_7, c_6_8, c_6_9],
- [c_7_1, c_7_2, c_7_3, c_7_4, c_7_5, c_7_6, c_7_7, c_7_8, c_7_9],
- [c_8_1, c_8_2, c_8_3, c_8_4, c_8_5, c_8_6, c_8_7, c_8_8, c_8_9],
- [c_9_1, c_9_2, c_9_3, c_9_4, c_9_5, c_9_6, c_9_7, c_9_8, c_9_9]]</pre>
+<pre>&#39;(bvadd x #x02)&#39;</pre>
 </div>
 
 </div>
@@ -13182,43 +13175,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>We define a sudoku instance. 0 denotes empty cells.</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">sudoku</span> <span class="o">=</span> <span class="p">(</span>  <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">7</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>  <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Constraints">Constraints<a class="anchor-link" href="#Constraints">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>We create a constraint so that the solver only focuses on empty cells, that is, the cells with 0 in them.</p>
+<p>Which translates to: bit vector addition of x with the integral value 2.</p>
 
 </div>
 </div>
@@ -13228,17 +13185,13 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;If&#39; is the if-then-else expression.</span>
-<span class="c1"># Keeps the empty cells for the consideration of solver, while fills the non empty cells into the board from the instance.</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Input serial array of length 13, since the serial length is 13.</span>
+<span class="n">serial</span> <span class="o">=</span> <span class="p">[]</span>
 
-<span class="n">instance_constraint</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">13</span><span class="p">):</span>
+    <span class="n">serial</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">BitVec</span><span class="p">(</span><span class="s2">&quot;serial_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="mi">32</span><span class="p">))</span>
 
-<span class="c1"># Iterate over all cells in the board to check for empty cells.</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-        <span class="n">instance_constraint</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">If</span><span class="p">(</span><span class="n">sudoku</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">board</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">sudoku</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
-
-<span class="n">instance_constraint</span>
+<span class="n">serial</span>
 </pre></div>
 
     </div>
@@ -13257,87 +13210,19 @@ div#notebook {
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[If(True, True, c_1_1 == 0),
- If(True, True, c_1_2 == 0),
- If(True, True, c_1_3 == 0),
- If(True, True, c_1_4 == 0),
- If(False, True, c_1_5 == 9),
- If(False, True, c_1_6 == 4),
- If(True, True, c_1_7 == 0),
- If(False, True, c_1_8 == 3),
- If(True, True, c_1_9 == 0),
- If(True, True, c_2_1 == 0),
- If(True, True, c_2_2 == 0),
- If(True, True, c_2_3 == 0),
- If(False, True, c_2_4 == 5),
- If(False, True, c_2_5 == 1),
- If(True, True, c_2_6 == 0),
- If(True, True, c_2_7 == 0),
- If(True, True, c_2_8 == 0),
- If(False, True, c_2_9 == 7),
- If(True, True, c_3_1 == 0),
- If(False, True, c_3_2 == 8),
- If(False, True, c_3_3 == 9),
- If(True, True, c_3_4 == 0),
- If(True, True, c_3_5 == 0),
- If(True, True, c_3_6 == 0),
- If(True, True, c_3_7 == 0),
- If(False, True, c_3_8 == 4),
- If(True, True, c_3_9 == 0),
- If(True, True, c_4_1 == 0),
- If(True, True, c_4_2 == 0),
- If(True, True, c_4_3 == 0),
- If(True, True, c_4_4 == 0),
- If(True, True, c_4_5 == 0),
- If(True, True, c_4_6 == 0),
- If(False, True, c_4_7 == 2),
- If(True, True, c_4_8 == 0),
- If(False, True, c_4_9 == 8),
- If(True, True, c_5_1 == 0),
- If(False, True, c_5_2 == 6),
- If(True, True, c_5_3 == 0),
- If(False, True, c_5_4 == 2),
- If(True, True, c_5_5 == 0),
- If(False, True, c_5_6 == 1),
- If(True, True, c_5_7 == 0),
- If(False, True, c_5_8 == 5),
- If(True, True, c_5_9 == 0),
- If(False, True, c_6_1 == 1),
- If(True, True, c_6_2 == 0),
- If(False, True, c_6_3 == 2),
- If(True, True, c_6_4 == 0),
- If(True, True, c_6_5 == 0),
- If(True, True, c_6_6 == 0),
- If(True, True, c_6_7 == 0),
- If(True, True, c_6_8 == 0),
- If(True, True, c_6_9 == 0),
- If(True, True, c_7_1 == 0),
- If(False, True, c_7_2 == 7),
- If(True, True, c_7_3 == 0),
- If(True, True, c_7_4 == 0),
- If(True, True, c_7_5 == 0),
- If(True, True, c_7_6 == 0),
- If(False, True, c_7_7 == 5),
- If(False, True, c_7_8 == 2),
- If(True, True, c_7_9 == 0),
- If(False, True, c_8_1 == 9),
- If(True, True, c_8_2 == 0),
- If(True, True, c_8_3 == 0),
- If(True, True, c_8_4 == 0),
- If(False, True, c_8_5 == 6),
- If(False, True, c_8_6 == 5),
- If(True, True, c_8_7 == 0),
- If(True, True, c_8_8 == 0),
- If(True, True, c_8_9 == 0),
- If(True, True, c_9_1 == 0),
- If(False, True, c_9_2 == 4),
- If(True, True, c_9_3 == 0),
- If(False, True, c_9_4 == 9),
- If(False, True, c_9_5 == 7),
- If(True, True, c_9_6 == 0),
- If(True, True, c_9_7 == 0),
- If(True, True, c_9_8 == 0),
- If(True, True, c_9_9 == 0)]</pre>
+<pre>[serial_0,
+ serial_1,
+ serial_2,
+ serial_3,
+ serial_4,
+ serial_5,
+ serial_6,
+ serial_7,
+ serial_8,
+ serial_9,
+ serial_10,
+ serial_11,
+ serial_12]</pre>
 </div>
 
 </div>
@@ -13345,133 +13230,17 @@ div#notebook {
 </div>
 </div>
 
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>We then encode the cell constraint. A cell must contain a number between 1 and 9.</p>
-
-</div>
-</div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[5]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;And&#39; represents the logical and function, denoted as &#39;&amp;&#39;.</span>
-
-<span class="n">cell_constraint</span>  <span class="o">=</span> <span class="p">[]</span>
-
-<span class="c1"># Iterate over all cells in the board to check that all numerals are between 1 and 9.</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-        <span class="n">cell_constraint</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">And</span><span class="p">(</span><span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">board</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">],</span> <span class="n">board</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">9</span><span class="p">))</span>
-
-<span class="n">cell_constraint</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># v4 initialised with 3.</span>
+<span class="n">running_sum</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">]</span>
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[5]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>[And(c_1_1 &gt;= 1, c_1_1 &lt;= 9),
- And(c_1_2 &gt;= 1, c_1_2 &lt;= 9),
- And(c_1_3 &gt;= 1, c_1_3 &lt;= 9),
- And(c_1_4 &gt;= 1, c_1_4 &lt;= 9),
- And(c_1_5 &gt;= 1, c_1_5 &lt;= 9),
- And(c_1_6 &gt;= 1, c_1_6 &lt;= 9),
- And(c_1_7 &gt;= 1, c_1_7 &lt;= 9),
- And(c_1_8 &gt;= 1, c_1_8 &lt;= 9),
- And(c_1_9 &gt;= 1, c_1_9 &lt;= 9),
- And(c_2_1 &gt;= 1, c_2_1 &lt;= 9),
- And(c_2_2 &gt;= 1, c_2_2 &lt;= 9),
- And(c_2_3 &gt;= 1, c_2_3 &lt;= 9),
- And(c_2_4 &gt;= 1, c_2_4 &lt;= 9),
- And(c_2_5 &gt;= 1, c_2_5 &lt;= 9),
- And(c_2_6 &gt;= 1, c_2_6 &lt;= 9),
- And(c_2_7 &gt;= 1, c_2_7 &lt;= 9),
- And(c_2_8 &gt;= 1, c_2_8 &lt;= 9),
- And(c_2_9 &gt;= 1, c_2_9 &lt;= 9),
- And(c_3_1 &gt;= 1, c_3_1 &lt;= 9),
- And(c_3_2 &gt;= 1, c_3_2 &lt;= 9),
- And(c_3_3 &gt;= 1, c_3_3 &lt;= 9),
- And(c_3_4 &gt;= 1, c_3_4 &lt;= 9),
- And(c_3_5 &gt;= 1, c_3_5 &lt;= 9),
- And(c_3_6 &gt;= 1, c_3_6 &lt;= 9),
- And(c_3_7 &gt;= 1, c_3_7 &lt;= 9),
- And(c_3_8 &gt;= 1, c_3_8 &lt;= 9),
- And(c_3_9 &gt;= 1, c_3_9 &lt;= 9),
- And(c_4_1 &gt;= 1, c_4_1 &lt;= 9),
- And(c_4_2 &gt;= 1, c_4_2 &lt;= 9),
- And(c_4_3 &gt;= 1, c_4_3 &lt;= 9),
- And(c_4_4 &gt;= 1, c_4_4 &lt;= 9),
- And(c_4_5 &gt;= 1, c_4_5 &lt;= 9),
- And(c_4_6 &gt;= 1, c_4_6 &lt;= 9),
- And(c_4_7 &gt;= 1, c_4_7 &lt;= 9),
- And(c_4_8 &gt;= 1, c_4_8 &lt;= 9),
- And(c_4_9 &gt;= 1, c_4_9 &lt;= 9),
- And(c_5_1 &gt;= 1, c_5_1 &lt;= 9),
- And(c_5_2 &gt;= 1, c_5_2 &lt;= 9),
- And(c_5_3 &gt;= 1, c_5_3 &lt;= 9),
- And(c_5_4 &gt;= 1, c_5_4 &lt;= 9),
- And(c_5_5 &gt;= 1, c_5_5 &lt;= 9),
- And(c_5_6 &gt;= 1, c_5_6 &lt;= 9),
- And(c_5_7 &gt;= 1, c_5_7 &lt;= 9),
- And(c_5_8 &gt;= 1, c_5_8 &lt;= 9),
- And(c_5_9 &gt;= 1, c_5_9 &lt;= 9),
- And(c_6_1 &gt;= 1, c_6_1 &lt;= 9),
- And(c_6_2 &gt;= 1, c_6_2 &lt;= 9),
- And(c_6_3 &gt;= 1, c_6_3 &lt;= 9),
- And(c_6_4 &gt;= 1, c_6_4 &lt;= 9),
- And(c_6_5 &gt;= 1, c_6_5 &lt;= 9),
- And(c_6_6 &gt;= 1, c_6_6 &lt;= 9),
- And(c_6_7 &gt;= 1, c_6_7 &lt;= 9),
- And(c_6_8 &gt;= 1, c_6_8 &lt;= 9),
- And(c_6_9 &gt;= 1, c_6_9 &lt;= 9),
- And(c_7_1 &gt;= 1, c_7_1 &lt;= 9),
- And(c_7_2 &gt;= 1, c_7_2 &lt;= 9),
- And(c_7_3 &gt;= 1, c_7_3 &lt;= 9),
- And(c_7_4 &gt;= 1, c_7_4 &lt;= 9),
- And(c_7_5 &gt;= 1, c_7_5 &lt;= 9),
- And(c_7_6 &gt;= 1, c_7_6 &lt;= 9),
- And(c_7_7 &gt;= 1, c_7_7 &lt;= 9),
- And(c_7_8 &gt;= 1, c_7_8 &lt;= 9),
- And(c_7_9 &gt;= 1, c_7_9 &lt;= 9),
- And(c_8_1 &gt;= 1, c_8_1 &lt;= 9),
- And(c_8_2 &gt;= 1, c_8_2 &lt;= 9),
- And(c_8_3 &gt;= 1, c_8_3 &lt;= 9),
- And(c_8_4 &gt;= 1, c_8_4 &lt;= 9),
- And(c_8_5 &gt;= 1, c_8_5 &lt;= 9),
- And(c_8_6 &gt;= 1, c_8_6 &lt;= 9),
- And(c_8_7 &gt;= 1, c_8_7 &lt;= 9),
- And(c_8_8 &gt;= 1, c_8_8 &lt;= 9),
- And(c_8_9 &gt;= 1, c_8_9 &lt;= 9),
- And(c_9_1 &gt;= 1, c_9_1 &lt;= 9),
- And(c_9_2 &gt;= 1, c_9_2 &lt;= 9),
- And(c_9_3 &gt;= 1, c_9_3 &lt;= 9),
- And(c_9_4 &gt;= 1, c_9_4 &lt;= 9),
- And(c_9_5 &gt;= 1, c_9_5 &lt;= 9),
- And(c_9_6 &gt;= 1, c_9_6 &lt;= 9),
- And(c_9_7 &gt;= 1, c_9_7 &lt;= 9),
- And(c_9_8 &gt;= 1, c_9_8 &lt;= 9),
- And(c_9_9 &gt;= 1, c_9_9 &lt;= 9)]</pre>
-</div>
-
-</div>
-
 </div>
 </div>
 
@@ -13479,7 +13248,14 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>We then encode the row constraint. Every row must have a digit appear only once.</p>
+<h3 id="Constraints">Constraints<a class="anchor-link" href="#Constraints">&#182;</a></h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Implementing constraints for the value boundations on every character in the input.</p>
 
 </div>
 </div>
@@ -13489,122 +13265,11 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;Distinct&#39; makes sure that the ith row shall be full of distinct numbers, that is, no number occuring twice.</span>
-<span class="c1"># Where, i loops through all the rows of the board.</span>
-
-<span class="n">row_constraint</span> <span class="o">=</span> <span class="p">[]</span>
-
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-    <span class="c1"># Get a row of the board.</span>
-    <span class="n">row</span> <span class="o">=</span> <span class="n">board</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-    
-    <span class="c1"># Add the distinct constraint for this particular row.</span>
-    <span class="n">row_constraint</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">Distinct</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>    
-
-<span class="n">row_constraint</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">digit</span> <span class="ow">in</span> <span class="n">serial</span><span class="p">:</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">And</span><span class="p">(</span><span class="n">digit</span><span class="o">&gt;</span><span class="mi">48</span><span class="p">,</span> <span class="n">digit</span><span class="o">&lt;=</span><span class="mi">57</span><span class="p">))</span>
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[6]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>[Distinct(c_1_1,
-          c_1_2,
-          c_1_3,
-          c_1_4,
-          c_1_5,
-          c_1_6,
-          c_1_7,
-          c_1_8,
-          c_1_9),
- Distinct(c_2_1,
-          c_2_2,
-          c_2_3,
-          c_2_4,
-          c_2_5,
-          c_2_6,
-          c_2_7,
-          c_2_8,
-          c_2_9),
- Distinct(c_3_1,
-          c_3_2,
-          c_3_3,
-          c_3_4,
-          c_3_5,
-          c_3_6,
-          c_3_7,
-          c_3_8,
-          c_3_9),
- Distinct(c_4_1,
-          c_4_2,
-          c_4_3,
-          c_4_4,
-          c_4_5,
-          c_4_6,
-          c_4_7,
-          c_4_8,
-          c_4_9),
- Distinct(c_5_1,
-          c_5_2,
-          c_5_3,
-          c_5_4,
-          c_5_5,
-          c_5_6,
-          c_5_7,
-          c_5_8,
-          c_5_9),
- Distinct(c_6_1,
-          c_6_2,
-          c_6_3,
-          c_6_4,
-          c_6_5,
-          c_6_6,
-          c_6_7,
-          c_6_8,
-          c_6_9),
- Distinct(c_7_1,
-          c_7_2,
-          c_7_3,
-          c_7_4,
-          c_7_5,
-          c_7_6,
-          c_7_7,
-          c_7_8,
-          c_7_9),
- Distinct(c_8_1,
-          c_8_2,
-          c_8_3,
-          c_8_4,
-          c_8_5,
-          c_8_6,
-          c_8_7,
-          c_8_8,
-          c_8_9),
- Distinct(c_9_1,
-          c_9_2,
-          c_9_3,
-          c_9_4,
-          c_9_5,
-          c_9_6,
-          c_9_7,
-          c_9_8,
-          c_9_9)]</pre>
-</div>
-
-</div>
-
 </div>
 </div>
 
@@ -13612,7 +13277,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>We then encode the column constraint. Each column must have a digit appear only once.</p>
+<p>Check value of running sum at every iteration.</p>
 
 </div>
 </div>
@@ -13622,23 +13287,13 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[7]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;Distinct&#39; makes sure that the jth column of the ith row shall be full of distinct numbers, that is, no number occuring twice.</span>
-<span class="c1"># Where, i loops through all the rows of the board and j loops through all the columns of the board.</span>
-
-<span class="n">col_constraint</span> <span class="o">=</span> <span class="p">[]</span>
-
-<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Append sum to a running sums array, and add it as a constraint at every interation.</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">serial</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">current_sum</span> <span class="o">=</span> <span class="n">z3</span><span class="o">.</span><span class="n">BitVec</span><span class="p">(</span><span class="s2">&quot;sum_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="mi">32</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">current_sum</span><span class="o">==</span><span class="n">running_sum</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">((</span><span class="mi">2</span><span class="o">*</span><span class="n">running_sum</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">^</span><span class="p">(</span><span class="n">serial</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="mi">48</span><span class="p">)))</span>
+    <span class="n">running_sum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_sum</span><span class="p">)</span>
     
-    <span class="c1"># Get the column.</span>
-    <span class="n">column</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-        <span class="c1"># Append all rows for this particular column.</span>
-        <span class="n">column</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">board</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span>
-        
-    <span class="c1"># Add the distinct constraint for this particular column.</span>
-    <span class="n">col_constraint</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">Distinct</span><span class="p">(</span><span class="n">column</span><span class="p">))</span>
-
-<span class="n">col_constraint</span>
+<span class="n">running_sum</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 </pre></div>
 
     </div>
@@ -13655,89 +13310,8 @@ div#notebook {
 
 
 
-
-<div class="output_text output_subarea output_execute_result">
-<pre>[Distinct(c_1_1,
-          c_2_1,
-          c_3_1,
-          c_4_1,
-          c_5_1,
-          c_6_1,
-          c_7_1,
-          c_8_1,
-          c_9_1),
- Distinct(c_1_2,
-          c_2_2,
-          c_3_2,
-          c_4_2,
-          c_5_2,
-          c_6_2,
-          c_7_2,
-          c_8_2,
-          c_9_2),
- Distinct(c_1_3,
-          c_2_3,
-          c_3_3,
-          c_4_3,
-          c_5_3,
-          c_6_3,
-          c_7_3,
-          c_8_3,
-          c_9_3),
- Distinct(c_1_4,
-          c_2_4,
-          c_3_4,
-          c_4_4,
-          c_5_4,
-          c_6_4,
-          c_7_4,
-          c_8_4,
-          c_9_4),
- Distinct(c_1_5,
-          c_2_5,
-          c_3_5,
-          c_4_5,
-          c_5_5,
-          c_6_5,
-          c_7_5,
-          c_8_5,
-          c_9_5),
- Distinct(c_1_6,
-          c_2_6,
-          c_3_6,
-          c_4_6,
-          c_5_6,
-          c_6_6,
-          c_7_6,
-          c_8_6,
-          c_9_6),
- Distinct(c_1_7,
-          c_2_7,
-          c_3_7,
-          c_4_7,
-          c_5_7,
-          c_6_7,
-          c_7_7,
-          c_8_7,
-          c_9_7),
- Distinct(c_1_8,
-          c_2_8,
-          c_3_8,
-          c_4_8,
-          c_5_8,
-          c_6_8,
-          c_7_8,
-          c_8_8,
-          c_9_8),
- Distinct(c_1_9,
-          c_2_9,
-          c_3_9,
-          c_4_9,
-          c_5_9,
-          c_6_9,
-          c_7_9,
-          c_8_9,
-          c_9_9)]</pre>
+<div class="output_html rendered_html output_subarea output_execute_result">
+sum_11
 </div>
 
 </div>
@@ -13749,7 +13323,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>We then encode the sub-square constraint. Every sub-square must have a digit appear only once.</p>
+<p>Constraint on the last digit of the serial.</p>
 
 </div>
 </div>
@@ -13759,143 +13333,25 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[8]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># The first loop goes through all rows and columns in a subsquare, and then all subsquares are looped through.</span>
-
-<span class="n">ssq_constraint</span> <span class="o">=</span> <span class="p">[]</span>
-
-<span class="c1"># Iterate over all subsquares.</span>
-<span class="k">for</span> <span class="n">i0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">j0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-        
-        <span class="c1"># Inside a subsquare, get all the cells.</span>
-        <span class="n">sub_square</span> <span class="o">=</span> <span class="p">[]</span>
-        
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-                <span class="n">sub_square</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">board</span><span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">i0</span> <span class="o">+</span> <span class="n">i</span><span class="p">][</span><span class="mi">3</span><span class="o">*</span><span class="n">j0</span> <span class="o">+</span> <span class="n">j</span><span class="p">])</span>
-        
-        <span class="c1"># Add the distinct constraint for this particular subsquare.</span>
-        <span class="n">ssq_constraint</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z3</span><span class="o">.</span><span class="n">Distinct</span><span class="p">(</span><span class="n">sub_square</span><span class="p">))</span>
-
-<span class="n">ssq_constraint</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">serial</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="p">(</span><span class="n">running_sum</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">%</span><span class="k">10</span>+48))
 </pre></div>
 
     </div>
 </div>
 </div>
 
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[8]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>[Distinct(c_1_1,
-          c_1_2,
-          c_1_3,
-          c_2_1,
-          c_2_2,
-          c_2_3,
-          c_3_1,
-          c_3_2,
-          c_3_3),
- Distinct(c_1_4,
-          c_1_5,
-          c_1_6,
-          c_2_4,
-          c_2_5,
-          c_2_6,
-          c_3_4,
-          c_3_5,
-          c_3_6),
- Distinct(c_1_7,
-          c_1_8,
-          c_1_9,
-          c_2_7,
-          c_2_8,
-          c_2_9,
-          c_3_7,
-          c_3_8,
-          c_3_9),
- Distinct(c_4_1,
-          c_4_2,
-          c_4_3,
-          c_5_1,
-          c_5_2,
-          c_5_3,
-          c_6_1,
-          c_6_2,
-          c_6_3),
- Distinct(c_4_4,
-          c_4_5,
-          c_4_6,
-          c_5_4,
-          c_5_5,
-          c_5_6,
-          c_6_4,
-          c_6_5,
-          c_6_6),
- Distinct(c_4_7,
-          c_4_8,
-          c_4_9,
-          c_5_7,
-          c_5_8,
-          c_5_9,
-          c_6_7,
-          c_6_8,
-          c_6_9),
- Distinct(c_7_1,
-          c_7_2,
-          c_7_3,
-          c_8_1,
-          c_8_2,
-          c_8_3,
-          c_9_1,
-          c_9_2,
-          c_9_3),
- Distinct(c_7_4,
-          c_7_5,
-          c_7_6,
-          c_8_4,
-          c_8_5,
-          c_8_6,
-          c_9_4,
-          c_9_5,
-          c_9_6),
- Distinct(c_7_7,
-          c_7_8,
-          c_7_9,
-          c_8_7,
-          c_8_8,
-          c_8_9,
-          c_9_7,
-          c_9_8,
-          c_9_9)]</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Solving-constraints">Solving constraints<a class="anchor-link" href="#Solving-constraints">&#182;</a></h3>
+<h3 id="Constraint-Solving">Constraint Solving<a class="anchor-link" href="#Constraint-Solving">&#182;</a></h3>
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Using Z3's solving abilities.</p>
+<p>Check if the problem is satisfiable.</p>
 
 </div>
 </div>
@@ -13905,9 +13361,7 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[9]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Initialize a solver instance</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">z3</span><span class="o">.</span><span class="n">Solver</span><span class="p">()</span>
-<span class="n">s</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
 </pre></div>
 
     </div>
@@ -13925,7 +13379,7 @@ div#notebook {
 
 
 <div class="output_html rendered_html output_subarea output_execute_result">
-[]
+<b>sat</b>
 </div>
 
 </div>
@@ -13933,31 +13387,15 @@ div#notebook {
 </div>
 </div>
 
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Add all the constraints to the solver.</p>
-
-</div>
-</div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[10]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;add&#39; method adds the constraints to the solver.</span>
-<span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instance_constraint</span><span class="p">)</span>
-<span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cell_constraint</span><span class="p">)</span>
-<span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">row_constraint</span><span class="p">)</span>
-<span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">col_constraint</span><span class="p">)</span>
-<span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ssq_constraint</span><span class="p">)</span>
-
-<span class="c1"># or just pass a cumulative of constraints to the solver.</span>
-<span class="c1">#s.add(instance_constraint + cell_constraint + row_constraint + col_constraint + ssq_constraint)</span>
-
-<span class="n">s</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="o">==</span> <span class="n">z3</span><span class="o">.</span><span class="n">sat</span><span class="p">:</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">model</span><span class="p">()</span>
+<span class="n">m</span>
 </pre></div>
 
     </div>
@@ -13975,136 +13413,31 @@ div#notebook {
 
 
 <div class="output_html rendered_html output_subarea output_execute_result">
-[If(True, True, c_1_1 = 0),
- If(True, True, c_1_2 = 0),
- If(True, True, c_1_3 = 0),
- If(True, True, c_1_4 = 0),
- If(False, True, c_1_5 = 9),
- If(False, True, c_1_6 = 4),
- If(True, True, c_1_7 = 0),
- If(False, True, c_1_8 = 3),
- If(True, True, c_1_9 = 0),
- If(True, True, c_2_1 = 0),
- If(True, True, c_2_2 = 0),
- If(True, True, c_2_3 = 0),
- If(False, True, c_2_4 = 5),
- If(False, True, c_2_5 = 1),
- If(True, True, c_2_6 = 0),
- If(True, True, c_2_7 = 0),
- If(True, True, c_2_8 = 0),
- If(False, True, c_2_9 = 7),
- If(True, True, c_3_1 = 0),
- If(False, True, c_3_2 = 8),
- If(False, True, c_3_3 = 9),
- If(True, True, c_3_4 = 0),
- If(True, True, c_3_5 = 0),
- If(True, True, c_3_6 = 0),
- If(True, True, c_3_7 = 0),
- If(False, True, c_3_8 = 4),
- If(True, True, c_3_9 = 0),
- If(True, True, c_4_1 = 0),
- If(True, True, c_4_2 = 0),
- If(True, True, c_4_3 = 0),
- If(True, True, c_4_4 = 0),
- If(True, True, c_4_5 = 0),
- If(True, True, c_4_6 = 0),
- If(False, True, c_4_7 = 2),
- If(True, True, c_4_8 = 0),
- If(False, True, c_4_9 = 8),
- If(True, True, c_5_1 = 0),
- If(False, True, c_5_2 = 6),
- If(True, True, c_5_3 = 0),
- If(False, True, c_5_4 = 2),
- If(True, True, c_5_5 = 0),
- If(False, True, c_5_6 = 1),
- If(True, True, c_5_7 = 0),
- If(False, True, c_5_8 = 5),
- If(True, True, c_5_9 = 0),
- If(False, True, c_6_1 = 1),
- If(True, True, c_6_2 = 0),
- If(False, True, c_6_3 = 2),
- If(True, True, c_6_4 = 0),
- If(True, True, c_6_5 = 0),
- If(True, True, c_6_6 = 0),
- If(True, True, c_6_7 = 0),
- If(True, True, c_6_8 = 0),
- If(True, True, c_6_9 = 0),
- If(True, True, c_7_1 = 0),
- If(False, True, c_7_2 = 7),
- If(True, True, c_7_3 = 0),
- If(True, True, c_7_4 = 0),
- If(True, True, c_7_5 = 0),
- If(True, True, c_7_6 = 0),
- If(False, True, c_7_7 = 5),
- If(False, True, c_7_8 = 2),
- If(True, True, c_7_9 = 0),
- If(False, True, c_8_1 = 9),
- If(True, True, c_8_2 = 0),
- If(True, True, c_8_3 = 0),
- If(True, True, c_8_4 = 0),
- If(False, True, c_8_5 = 6),
- If(False, True, c_8_6 = 5),
- If(True, True, c_8_7 = 0),
- If(True, True, c_8_8 = 0),
- If(True, True, c_8_9 = 0),
- If(True, True, c_9_1 = 0),
- If(False, True, c_9_2 = 4),
- If(True, True, c_9_3 = 0),
- If(False, True, c_9_4 = 9),
- If(False, True, c_9_5 = 7),
- If(True, True, c_9_6 = 0),
- If(True, True, c_9_7 = 0),
- If(True, True, c_9_8 = 0),
- If(True, True, c_9_9 = 0),
- c_1_1 &ge; 1 &and; c_1_1 &le; 9,
- c_1_2 &ge; 1 &and; c_1_2 &le; 9,
- c_1_3 &ge; 1 &and; c_1_3 &le; 9,
- c_1_4 &ge; 1 &and; c_1_4 &le; 9,
- c_1_5 &ge; 1 &and; c_1_5 &le; 9,
- c_1_6 &ge; 1 &and; c_1_6 &le; 9,
- c_1_7 &ge; 1 &and; c_1_7 &le; 9,
- c_1_8 &ge; 1 &and; c_1_8 &le; 9,
- c_1_9 &ge; 1 &and; c_1_9 &le; 9,
- c_2_1 &ge; 1 &and; c_2_1 &le; 9,
- c_2_2 &ge; 1 &and; c_2_2 &le; 9,
- c_2_3 &ge; 1 &and; c_2_3 &le; 9,
- c_2_4 &ge; 1 &and; c_2_4 &le; 9,
- c_2_5 &ge; 1 &and; c_2_5 &le; 9,
- c_2_6 &ge; 1 &and; c_2_6 &le; 9,
- c_2_7 &ge; 1 &and; c_2_7 &le; 9,
- c_2_8 &ge; 1 &and; c_2_8 &le; 9,
- c_2_9 &ge; 1 &and; c_2_9 &le; 9,
- c_3_1 &ge; 1 &and; c_3_1 &le; 9,
- c_3_2 &ge; 1 &and; c_3_2 &le; 9,
- c_3_3 &ge; 1 &and; c_3_3 &le; 9,
- c_3_4 &ge; 1 &and; c_3_4 &le; 9,
- c_3_5 &ge; 1 &and; c_3_5 &le; 9,
- c_3_6 &ge; 1 &and; c_3_6 &le; 9,
- c_3_7 &ge; 1 &and; c_3_7 &le; 9,
- c_3_8 &ge; 1 &and; c_3_8 &le; 9,
- c_3_9 &ge; 1 &and; c_3_9 &le; 9,
- c_4_1 &ge; 1 &and; c_4_1 &le; 9,
- c_4_2 &ge; 1 &and; c_4_2 &le; 9,
- c_4_3 &ge; 1 &and; c_4_3 &le; 9,
- c_4_4 &ge; 1 &and; c_4_4 &le; 9,
- c_4_5 &ge; 1 &and; c_4_5 &le; 9,
- c_4_6 &ge; 1 &and; c_4_6 &le; 9,
- c_4_7 &ge; 1 &and; c_4_7 &le; 9,
- c_4_8 &ge; 1 &and; c_4_8 &le; 9,
- c_4_9 &ge; 1 &and; c_4_9 &le; 9,
- c_5_1 &ge; 1 &and; c_5_1 &le; 9,
- c_5_2 &ge; 1 &and; c_5_2 &le; 9,
- c_5_3 &ge; 1 &and; c_5_3 &le; 9,
- c_5_4 &ge; 1 &and; c_5_4 &le; 9,
- c_5_5 &ge; 1 &and; c_5_5 &le; 9,
- c_5_6 &ge; 1 &and; c_5_6 &le; 9,
- c_5_7 &ge; 1 &and; c_5_7 &le; 9,
- c_5_8 &ge; 1 &and; c_5_8 &le; 9,
- c_5_9 &ge; 1 &and; c_5_9 &le; 9,
- c_6_1 &ge; 1 &and; c_6_1 &le; 9,
- c_6_2 &ge; 1 &and; c_6_2 &le; 9,
- c_6_3 &ge; 1 &and; c_6_3 &le; 9,
- &hellip;]
+[sum_3 = 247,
+ sum_0 = 10,
+ sum_5 = 2215,
+ sum_6 = 6646,
+ sum_7 = 19940,
+ sum_1 = 27,
+ sum_8 = 59823,
+ sum_2 = 82,
+ sum_9 = 179465,
+ sum_4 = 736,
+ sum_10 = 538396,
+ serial_0 = 49,
+ serial_5 = 55,
+ serial_4 = 55,
+ serial_11 = 52,
+ serial_9 = 52,
+ serial_3 = 49,
+ serial_12 = 50,
+ serial_10 = 49,
+ serial_8 = 51,
+ serial_7 = 50,
+ serial_1 = 53,
+ serial_6 = 49,
+ serial_2 = 49,
+ sum_11 = 1615192]
 </div>
 
 </div>
@@ -14116,7 +13449,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Check if the scenario is satisfiable (problem with the given constraints and instance).</p>
+<p>Cleaning up and representing the answer in a readable form:</p>
 
 </div>
 </div>
@@ -14126,9 +13459,16 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[11]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;check&#39; method verifies the SAT nature of the scenario.</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Now m is a map. We dereference the values of serial required from it.</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Serial object:&quot;</span><span class="p">,</span> <span class="n">serial</span><span class="p">)</span>
 
-<span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+<span class="n">inp</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">digit</span> <span class="ow">in</span> <span class="n">serial</span><span class="p">:</span>
+    <span class="c1"># &#39;as_long&#39; method used to convert vector value to long type.</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Value of&quot;</span><span class="p">,</span> <span class="n">digit</span><span class="p">,</span> <span class="s2">&quot;is:&quot;</span><span class="p">,</span> <span class="n">m</span><span class="p">[</span><span class="n">digit</span><span class="p">])</span>
+    <span class="n">inp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="n">digit</span><span class="p">]</span><span class="o">.</span><span class="n">as_long</span><span class="p">())</span>
+    
+<span class="n">inp</span>
 </pre></div>
 
     </div>
@@ -14141,12 +13481,37 @@ div#notebook {
 
 <div class="output_area">
 
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Serial object: [serial_0, serial_1, serial_2, serial_3, serial_4, serial_5, serial_6, serial_7, serial_8, serial_9, serial_10, serial_11, serial_12]
+Value of serial_0 is: 49
+Value of serial_1 is: 53
+Value of serial_2 is: 49
+Value of serial_3 is: 49
+Value of serial_4 is: 55
+Value of serial_5 is: 55
+Value of serial_6 is: 49
+Value of serial_7 is: 50
+Value of serial_8 is: 51
+Value of serial_9 is: 52
+Value of serial_10 is: 49
+Value of serial_11 is: 52
+Value of serial_12 is: 50
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
     <div class="prompt output_prompt">Out[11]:</div>
 
 
 
-<div class="output_html rendered_html output_subarea output_execute_result">
-<b>sat</b>
+
+<div class="output_text output_subarea output_execute_result">
+<pre>[49, 53, 49, 49, 55, 55, 49, 50, 51, 52, 49, 52, 50]</pre>
 </div>
 
 </div>
@@ -14158,7 +13523,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>If it is satisfiable, then we move on to creating a model for it. Model is the solution of a satisfiability problem (aka system of constraints).</p>
+<p>These bytes give you the value of the good serial. Convert the ordinal values to their ASCII equivalents.</p>
 
 </div>
 </div>
@@ -14168,14 +13533,8 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[12]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;model&#39; method instantiates a model for the given scenario.</span>
-
-<span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="o">==</span> <span class="n">z3</span><span class="o">.</span><span class="n">sat</span><span class="p">:</span>
-    <span class="n">m</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">model</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="n">m</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unsatisfiable&quot;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">solution</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inp</span><span class="p">])</span>
+<span class="n">solution</span>
 </pre></div>
 
     </div>
@@ -14188,156 +13547,17 @@ div#notebook {
 
 <div class="output_area">
 
-    <div class="prompt"></div>
+    <div class="prompt output_prompt">Out[12]:</div>
 
 
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[c_9_9 = 6,
- c_1_4 = 8,
- c_6_7 = 7,
- c_7_1 = 3,
- c_4_3 = 3,
- c_6_6 = 9,
- c_7_6 = 8,
- c_9_8 = 8,
- c_7_5 = 4,
- c_9_3 = 1,
- c_7_4 = 1,
- c_8_3 = 8,
- c_3_9 = 5,
- c_2_8 = 9,
- c_6_9 = 3,
- c_9_6 = 2,
- c_3_5 = 2,
- c_1_2 = 1,
- c_1_7 = 6,
- c_4_2 = 9,
- c_2_6 = 6,
- c_9_1 = 5,
- c_1_9 = 2,
- c_7_3 = 6,
- c_3_6 = 3,
- c_8_2 = 2,
- c_4_6 = 7,
- c_9_7 = 3,
- c_5_5 = 3,
- c_7_9 = 9,
- c_5_3 = 7,
- c_5_9 = 4,
- c_8_9 = 1,
- c_4_5 = 5,
- c_8_7 = 4,
- c_8_8 = 7,
- c_6_5 = 8,
- c_2_3 = 4,
- c_5_1 = 8,
- c_2_7 = 8,
- c_4_1 = 4,
- c_6_2 = 5,
- c_6_8 = 6,
- c_3_1 = 6,
- c_1_1 = 7,
- c_1_3 = 5,
- c_4_4 = 6,
- c_2_1 = 2,
- c_8_4 = 3,
- c_4_8 = 1,
- c_3_4 = 7,
- c_2_2 = 3,
- c_5_7 = 9,
- c_6_4 = 4,
- c_3_7 = 1,
- c_9_5 = 7,
- c_9_4 = 9,
- c_9_2 = 4,
- c_8_6 = 5,
- c_8_5 = 6,
- c_8_1 = 9,
- c_7_8 = 2,
- c_7_7 = 5,
- c_7_2 = 7,
- c_6_3 = 2,
- c_6_1 = 1,
- c_5_8 = 5,
- c_5_6 = 1,
- c_5_4 = 2,
- c_5_2 = 6,
- c_4_9 = 8,
- c_4_7 = 2,
- c_3_8 = 4,
- c_3_3 = 9,
- c_3_2 = 8,
- c_2_9 = 7,
- c_2_5 = 1,
- c_2_4 = 5,
- c_1_8 = 3,
- c_1_6 = 4,
- c_1_5 = 9]
-</pre>
-</div>
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>&#39;1511771234142&#39;</pre>
 </div>
 
 </div>
-</div>
 
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[13]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># &#39;evaluate&#39; method computes and gives the output of the model.</span>
-
-<span class="k">if</span> <span class="n">m</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">solution</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-        <span class="n">column</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
-            <span class="n">column</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">board</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
-        <span class="n">solution</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
-    <span class="n">z3</span><span class="o">.</span><span class="n">print_matrix</span><span class="p">(</span><span class="n">solution</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[[7, 1, 5, 8, 9, 4, 6, 3, 2],
- [2, 3, 4, 5, 1, 6, 8, 9, 7],
- [6, 8, 9, 7, 2, 3, 1, 4, 5],
- [4, 9, 3, 6, 5, 7, 2, 1, 8],
- [8, 6, 7, 2, 3, 1, 9, 5, 4],
- [1, 5, 2, 4, 8, 9, 7, 6, 3],
- [3, 7, 6, 1, 4, 8, 5, 2, 9],
- [9, 2, 8, 3, 6, 5, 4, 7, 1],
- [5, 4, 1, 9, 7, 2, 3, 8, 6]]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
 </div>
 </div>
 
